@@ -1,0 +1,66 @@
+name: Performance Tests - BlazeDemo
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Tipo de teste'
+        required: true
+        default: 'load'
+        type: choice
+        options:
+          - load
+          - spike
+          - all
+
+jobs:
+  performance-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
+      - name: Baixar e instalar JMeter 5.6.3
+        run: |
+          wget -q https://downloads.apache.org/jmeter/binaries/apache-jmeter-5.6.3.tgz
+          tar -xzf apache-jmeter-5.6.3.tgz
+          echo "JMETER_HOME=$(pwd)/apache-jmeter-5.6.3" >> $GITHUB_ENV
+          echo "$(pwd)/apache-jmeter-5.6.3/bin" >> $GITHUB_PATH
+
+      - name: Criar pasta de reports
+        run: mkdir -p performance-tests/reports
+
+      - name: Executar Load Test
+        if: ${{ github.event.inputs.test_type == 'load' || github.event.inputs.test_type == 'all' || github.event_name == 'push' }}
+        run: |
+          jmeter -n \
+            -t performance-tests/scripts/blazedemo-load-test.jmx \
+            -l performance-tests/reports/load-test-results.jtl \
+            -e -o performance-tests/reports/load-test-html \
+            -j performance-tests/reports/load-test.log
+
+      - name: Executar Spike Test
+        if: ${{ github.event.inputs.test_type == 'spike' || github.event.inputs.test_type == 'all' }}
+        run: |
+          jmeter -n \
+            -t performance-tests/scripts/blazedemo-spike-test.jmx \
+            -l performance-tests/reports/spike-test-results.jtl \
+            -e -o performance-tests/reports/spike-test-html \
+            -j performance-tests/reports/spike-test.log
+
+      - name: Upload relatórios HTML
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-reports
+          path: performance-tests/reports/
+          retention-days: 30

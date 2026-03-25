@@ -1,0 +1,44 @@
+name: Web Tests - Blog do Agi
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  web-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
+      - name: Cache Maven
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Instalar Google Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Executar testes
+        run: mvn test --no-transfer-progress
+        working-directory: web-tests
+
+      - name: Publicar relatório de testes
+        uses: mikepenz/action-junit-report@v4
+        if: always()
+        with:
+          report_paths: 'web-tests/target/surefire-reports/*.xml'
+          detailed_summary: true
