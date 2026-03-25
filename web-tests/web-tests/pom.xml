@@ -10,7 +10,7 @@
     <packaging>jar</packaging>
 
     <name>Blog do Agi - Web Tests</name>
-    <description>Testes automatizados de UI para o Blog do Agi</description>
+    <description>Testes automatizados para o Blog do Agi</description>
 
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
